@@ -1,0 +1,8 @@
+{
+  "domain": "arturs_labels",
+  "name": "Artur's Labels",
+  "version": "0.1.0",
+  "codeowners": ["@arturpragacz"],
+  "integration_type": "system",
+  "quality_scale": "internal"
+}
