@@ -117,7 +117,7 @@ arturs_labels:
 
 ```
 
-Each time you make changes to the configuration, you have to restart Home Assistant.
+Each time you make changes to the configuration, you have to reload the component or restart Home Assistant.
 
 ### Install prerequisites
 
