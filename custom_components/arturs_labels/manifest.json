@@ -4,5 +4,6 @@
   "version": "0.2.0",
   "codeowners": ["@arturpragacz"],
   "integration_type": "system",
-  "quality_scale": "internal"
+  "documentation": "https://github.com/arturpragacz/hass-cc-arturs-labels",
+  "issue_tracker": "https://github.com/arturpragacz/hass-cc-arturs-labels/issues"
 }
