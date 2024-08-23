@@ -1,5 +1,6 @@
 """Artur's labels component."""
 
+from dataclasses import dataclass
 import logging
 
 import voluptuous as vol
@@ -39,23 +40,41 @@ LABEL_SCHEMA = {
 CONFIG_SCHEMA = vol.Schema(
     {
         vol.Required(DOMAIN): {
-            vol.Required("labels", default=[]): LABEL_SCHEMA,
+            vol.Required("labels", default={}): LABEL_SCHEMA,
+            vol.Required("areas", default=[]): vol.All(
+                cv.ensure_list, [str], vol.util.Set()
+            ),
         },
     },
     extra=vol.ALLOW_EXTRA,
 )
 
 
+@dataclass
+class LabelsConfig:
+    """Labels config."""
+
+    labels_parents: dict[str, set[str]]
+    areas: set[str]
+
+
+def _get_config(config: ConfigType) -> LabelsConfig:
+    """Transform config into proper form."""
+    conf = config[DOMAIN]
+    labels_parents = {}
+    for label_id, label_data in conf["labels"].items():
+        labels_parents[label_id] = label_data["parents"]
+    return LabelsConfig(labels_parents, conf["areas"])
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the arturs_labels component."""
-    labels_parents = {}
-    for label_id, label_data in config[DOMAIN]["labels"].items():
-        labels_parents[label_id] = label_data["parents"]
+    labels_config = _get_config(config)
 
     service_helper.async_setup(hass)
 
     # lr has to be loaded first, because others depend on it
-    lr.async_load(hass, labels_parents)
+    lr.async_load(hass, labels_config)
 
     # dr has to be loaded before er, so that callbacks
     # to lr.EVENT_LABEL_REGISTRY_ANCESTRY_UPDATED fire in correct order
@@ -89,9 +108,7 @@ async def async_reload(hass: HomeAssistant) -> None:
     if config is None or DOMAIN not in config:
         return
 
-    labels_parents = {}
-    for label_id, label_data in config[DOMAIN]["labels"].items():
-        labels_parents[label_id] = label_data["parents"]
+    labels_config = _get_config(config)
 
     lab_reg = lr.async_get(hass)
-    lab_reg.async_load_parents(labels_parents)
+    lab_reg.async_load_config(labels_config)

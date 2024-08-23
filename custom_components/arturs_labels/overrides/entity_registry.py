@@ -302,14 +302,14 @@ def _async_setup_labels(hass: HomeAssistant, registry: EntityRegistry) -> None:
     """Clean up entities caches when labels ancestry updated."""
 
     @callback
-    def _handle_label_registry_ancestry_update(
-        event: lr.EventLabelRegistryAncestryUpdated,
+    def _handle_label_registry_extra_update(
+        event: lr.EventLabelRegistryExtraUpdated,
     ) -> None:
         registry.async_update_all_extra_labels()
 
     hass.bus.async_listen(
-        event_type=lr.EVENT_LABEL_REGISTRY_ANCESTRY_UPDATED,
-        listener=_handle_label_registry_ancestry_update,
+        event_type=lr.EVENT_LABEL_REGISTRY_EXTRA_UPDATED,
+        listener=_handle_label_registry_extra_update,
     )
 
     @callback

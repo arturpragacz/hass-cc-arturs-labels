@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 import dataclasses
 from dataclasses import dataclass, field
 import logging
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import label_registry as old_lr  # noqa: ICN001
@@ -17,20 +17,23 @@ from homeassistant.helpers.singleton import singleton
 from homeassistant.util.event_type import EventType
 from homeassistant.util.hass_dict import HassKey
 
+if TYPE_CHECKING:
+    from .. import LabelsConfig
+
 _LOGGER = logging.getLogger(__name__)
 
 DATA_REGISTRY: HassKey[LabelRegistry] = HassKey("arturs_label_registry")
 
-EVENT_LABEL_REGISTRY_ANCESTRY_UPDATED: EventType[
-    EventLabelRegistryAncestryUpdatedData
-] = EventType("arturs_label_registry_ancestry_updated")
+EVENT_LABEL_REGISTRY_EXTRA_UPDATED: EventType[EventLabelRegistryExtraUpdatedData] = (
+    EventType("arturs_label_registry_extra_updated")
+)
 
 
-class EventLabelRegistryAncestryUpdatedData(TypedDict):
+class EventLabelRegistryExtraUpdatedData(TypedDict):
     """Event data for when the label ancestry is updated."""
 
 
-type EventLabelRegistryAncestryUpdated = Event[EventLabelRegistryAncestryUpdatedData]
+type EventLabelRegistryExtraUpdated = Event[EventLabelRegistryExtraUpdatedData]
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -88,8 +91,11 @@ class LabelRegistry(old_lr.LabelRegistry):
 
     labels: LabelRegistryItems
 
+    areas: set[str]  # real areas
+
     _old_registry: old_lr.LabelRegistry
     _parents: dict[str, set[str]]
+    _areas: set[str]
 
     def __init__(self, hass: HomeAssistant, old_registry: old_lr.LabelRegistry) -> None:
         """Initialize the label registry."""
@@ -99,17 +105,26 @@ class LabelRegistry(old_lr.LabelRegistry):
         self._store = old_registry._store  # noqa: SLF001
 
     @callback
+    def async_get_label(self, label_id: str) -> LabelEntry | None:
+        """Get label by ID.
+
+        We retrieve the LabelEntry from the underlying dict to avoid
+        the overhead of the UserDict __getitem__.
+        """
+        return cast(LabelEntry | None, self._label_data.get(label_id))
+
+    @callback
     def async_create(self, *args, **kwargs) -> old_lr.LabelEntry:
         """Create a new label."""
         label = super().async_create(*args, **kwargs)
-        self._async_compute_ancestry()
+        self._async_compute_extra()
         return label
 
     @callback
     def async_delete(self, label_id: str) -> None:
         """Delete label."""
         super().async_delete(label_id)
-        self._async_compute_ancestry()
+        self._async_compute_extra()
 
     async def async_load(self) -> None:
         """Erase method."""
@@ -129,25 +144,26 @@ class LabelRegistry(old_lr.LabelRegistry):
         self._old_registry.__class__ = self.__class__
 
     @callback
-    def async_load_parents(
-        self, labels_parents: dict[str, set[str]], *, fire: bool = True
-    ):
-        """Load the labels ancestry."""
+    def async_load_config(self, labels_config: LabelsConfig, *, fire: bool = True):
+        """Load the labels config."""
         labels_parents = {
-            item[0]: item[1]
-            for item in labels_parents.items()
-            if not _is_label_special(item[0])
+            k: v
+            for k, v in labels_config.labels_parents.items()
+            if not _is_label_special(k)
         }
         for label_id, parents in labels_parents.items():
             parents.discard(label_id)
             discards = [parent for parent in parents if _is_label_special(parent)]
             parents.difference_update(discards)
+        areas = {a for a in labels_config.areas if not _is_label_special(a)}
 
         self._parents = labels_parents
-        self._async_compute_ancestry(fire=fire)
+        self._areas = areas
+        self._async_compute_extra(fire=fire)
 
-    def _async_compute_ancestry(self, *, fire: bool = True) -> None:
+    def _async_compute_extra(self, *, fire: bool = True) -> None:
         all_label_ids = self.labels.keys()
+
         for label in self.labels.view.values():
             label.mut["ancestors"] = None
             parents = self._parents.get(label.label_id, None)
@@ -157,15 +173,17 @@ class LabelRegistry(old_lr.LabelRegistry):
                 real_parents = parents & all_label_ids
                 label.mut["parents"] = real_parents
 
-        self._async_do_compute_ancestry()
+        self._async_compute_ancestry()
+
+        self.areas = self._areas & all_label_ids
 
         if fire:
             self.hass.bus.async_fire(
-                EVENT_LABEL_REGISTRY_ANCESTRY_UPDATED,
-                EventLabelRegistryAncestryUpdatedData(),
+                EVENT_LABEL_REGISTRY_EXTRA_UPDATED,
+                EventLabelRegistryExtraUpdatedData(),
             )
 
-    def _async_do_compute_ancestry(self) -> None:
+    def _async_compute_ancestry(self) -> None:
         indices: dict[str, int] = {}
         for label_id in self.labels:
             indices[label_id] = -1
@@ -271,10 +289,10 @@ def async_get(hass: HomeAssistant) -> LabelRegistry:
 
 
 @callback
-def async_load(hass: HomeAssistant, labels_parents: dict[str, Any]) -> None:
+def async_load(hass: HomeAssistant, labels_config: LabelsConfig) -> None:
     """Load label registry."""
     assert DATA_REGISTRY not in hass.data
     registry = async_get(hass)
     registry.async_load_cb()
-    registry.async_load_parents(labels_parents, fire=False)
+    registry.async_load_config(labels_config, fire=False)
     old_lr.async_get = async_get
