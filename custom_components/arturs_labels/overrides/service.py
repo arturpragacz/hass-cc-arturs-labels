@@ -1,4 +1,4 @@
-"""The methods for loading Home Assistant integrations."""
+"""Service calling related helpers."""
 
 from collections.abc import Callable
 
@@ -30,8 +30,8 @@ def async_extract_referenced_entity_ids(
     """Extract referenced entity IDs from a service call."""
     dev_reg = dr.async_get(hass)
 
-    dev_reg.devices.no_devices_for_label = True
     assert old_func
+    dev_reg.devices.no_devices_for_label = True
     try:
         result = old_func(hass, service_call, *args, **kwargs)
     finally:

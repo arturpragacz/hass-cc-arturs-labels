@@ -33,7 +33,7 @@ DATA_REGISTRY: HassKey[EntityRegistry] = HassKey("arturs_entity_registry")
 class RegistryEntry(RegistryEntryBase, old_er.RegistryEntry):
     """Entity Registry Entry."""
 
-    assigned_labels: set[str] = attr.ib(factory=set)
+    assigned_labels: set[str] = attr.ib(factory=set)  # from entity and device
 
     @property
     def _as_display_dict(self) -> dict[str, Any] | None:
@@ -165,6 +165,19 @@ class EntityRegistry(old_er.EntityRegistry):
         self.hass = hass
         self._old_registry = old_registry
         self._store = old_registry._store  # noqa: SLF001
+
+    @callback
+    def async_get(self, entity_id_or_uuid: str) -> RegistryEntry | None:
+        """Get EntityEntry for an entity_id or entity entry id.
+
+        We retrieve the RegistryEntry from the underlying dict to avoid
+        the overhead of the UserDict __getitem__.
+        """
+        return cast(
+            RegistryEntry | None,
+            self._entities_data.get(entity_id_or_uuid)
+            or self.entities.get_entry(entity_id_or_uuid),
+        )
 
     @callback
     def async_update_entity(self, entity_id: str, **kwargs) -> RegistryEntry:

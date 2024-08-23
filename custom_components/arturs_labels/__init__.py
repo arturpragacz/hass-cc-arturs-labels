@@ -16,6 +16,7 @@ from .overrides import (
     area_registry as ar,
     device_registry as dr,
     entity_registry as er,
+    intent as intent_helper,
     label_registry as lr,
     service as service_helper,
 )
@@ -71,8 +72,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the arturs_labels component."""
     labels_config = _get_config(config)
 
-    service_helper.async_setup(hass)
-
     # lr has to be loaded first, because others depend on it
     lr.async_load(hass, labels_config)
 
@@ -82,6 +81,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     er.async_load(hass)
     ar.async_load(hass)
+
+    service_helper.async_setup(hass)
+    intent_helper.async_setup(hass)
 
     con_lr.async_setup(hass)
     con_dr.async_setup(hass)
