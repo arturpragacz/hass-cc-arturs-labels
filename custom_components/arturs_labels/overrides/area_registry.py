@@ -16,6 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DATA_REGISTRY: HassKey[AreaRegistry] = HassKey("arturs_area_registry")
 
+NULL_FLOOR_ID: None = None
 NULL_LABELS: set[str] = set()
 
 
@@ -23,6 +24,7 @@ NULL_LABELS: set[str] = set()
 class AreaEntry(old_ar.AreaEntry):
     """Area Registry Entry."""
 
+    shadow_floor_id: str | None
     shadow_labels: set[str]
 
 
@@ -40,9 +42,12 @@ class AreaRegistryItems(old_ar.AreaRegistryItems):
         """Index an entry."""
         if type(entry) is not AreaEntry:
             entry_dict = dataclasses.asdict(entry)
+            entry_dict["floor_id"] = NULL_FLOOR_ID
             entry_dict["labels"] = NULL_LABELS
 
-            entry = AreaEntry(**entry_dict, shadow_labels=entry.labels)
+            entry = AreaEntry(
+                **entry_dict, shadow_floor_id=entry.floor_id, shadow_labels=entry.labels
+            )
             self.data[key] = entry
 
         super()._index_entry(key, entry)
@@ -63,12 +68,16 @@ class AreaRegistry(old_ar.AreaRegistry):
         self._store = old_registry._store  # noqa: SLF001
 
     @callback
-    def async_create(self, *args, labels=None, **kwargs) -> old_ar.AreaEntry:
+    def async_create(
+        self, *args, floor_id=None, labels=None, **kwargs
+    ) -> old_ar.AreaEntry:
         """Create a new area."""
         return super().async_create(*args, **kwargs)
 
     @callback
-    def _async_update(self, *args, labels=None, **kwargs) -> old_ar.AreaEntry:
+    def _async_update(
+        self, *args, floor_id=None, labels=None, **kwargs
+    ) -> old_ar.AreaEntry:
         """Update properties of an area."""
         return super()._async_update(*args, **kwargs)
 
@@ -96,7 +105,9 @@ class AreaRegistry(old_ar.AreaRegistry):
 
         view = self.areas.view
         for area in result["areas"]:
-            area["labels"] = list(view[area["id"]].shadow_labels)
+            area_entry = view[area["id"]]
+            area["floor_id"] = area_entry.shadow_floor_id
+            area["labels"] = list(area_entry.shadow_labels)
 
         return result
 
