@@ -14,6 +14,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .overrides import (
     area_registry as ar,
+    conversation_default_agent,
     device_registry as dr,
     entity_registry as er,
     intent as intent_helper,
@@ -84,6 +85,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     service_helper.async_setup(hass)
     intent_helper.async_setup(hass)
+    conversation_default_agent.async_setup(hass)
 
     con_lr.async_setup(hass)
     con_dr.async_setup(hass)

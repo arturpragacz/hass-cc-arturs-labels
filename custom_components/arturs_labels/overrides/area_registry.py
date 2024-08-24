@@ -6,14 +6,16 @@ from collections.abc import Iterable, Mapping
 import dataclasses
 from dataclasses import dataclass
 import logging
+from typing import TypedDict
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import area_registry as old_ar  # noqa: ICN001
 from homeassistant.helpers.normalized_name_base_registry import (
     NormalizedNameBaseRegistryItems,
     normalize_name,
 )
 from homeassistant.helpers.singleton import singleton
+from homeassistant.util.event_type import EventType
 from homeassistant.util.hass_dict import HassKey
 
 from . import label_registry as lr
@@ -25,6 +27,16 @@ DATA_REGISTRY: HassKey[AreaRegistry] = HassKey("arturs_area_registry")
 NULL_FLOOR_ID: None = None
 NULL_LABELS: set[str] = set()
 
+EVENT_AREA_REGISTRY_LABEL_UPDATED: EventType[EventAreaRegistryLabelUpdatedData] = (
+    EventType("arturs_area_registry_label_updated")
+)
+
+
+class EventAreaRegistryLabelUpdatedData(TypedDict):
+    """Event data for when the label ancestry is updated."""
+
+
+type EventAreaRegistryLabelUpdated = Event[EventAreaRegistryLabelUpdatedData]
 
 OldAreaEntry = old_ar.AreaEntry
 
@@ -204,6 +216,11 @@ class AreaRegistry(old_ar.AreaRegistry):
                 old_ar.EVENT_AREA_REGISTRY_UPDATED,
                 old_ar.EventAreaRegistryUpdatedData(action="create", area_id=area_id),
             )
+
+        self.hass.bus.async_fire(
+            EVENT_AREA_REGISTRY_LABEL_UPDATED,
+            EventAreaRegistryLabelUpdatedData(),
+        )
 
     @callback
     def _data_to_save(self) -> old_ar.AreasRegistryStoreData:
