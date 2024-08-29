@@ -6,9 +6,9 @@ As the name implies I made it primarily for my own usage. Since I put in all tha
 
 ## Disclaimer
 
-Right now this is a very early beta release. You might encounter bugs, performance issues and other suboptimal behaviour. Do not even think of installing this without proper backups in place. Due to the nature of the system, this component has to integrate very deeply with Home Assistant internals, making it uniquely susceptible to breakage. This means you have to be very careful with updates, always have a backup ready just in case.
+This is a beta release. Do not install this without proper backups in place. Due to the nature of the system, this component has to integrate very deeply with Home Assistant internals, making it uniquely susceptible to breakage. This means you have to be very careful with updates, always have a backup ready just in case.
 
-Because of this early beta state some changes in configuration options and system behaviour might be required in the future. Make sure to always read the release notes and make the necessary adjustments.
+Because of this beta state some changes in configuration options and system behaviour might be required in the future. Make sure to always read the release notes and make the necessary adjustments.
 
 ## What does it do?
 
@@ -157,11 +157,36 @@ The template `label_entities(label_name_or_id)` will allow you to get all the en
 
 ### Areas
 
-This extensive labeling system is meant to effective replace the need for areas. For this reason areas will be completely **disabled**. You will not be able to target an area in service actions or templates.
+This extensive labeling system is meant to effective replace the need for areas. For this reason areas will be functionally **disabled**. You will not be able to target an area in service actions or templates. Instead just target the appropriate label.
 
 ### Voice assistants
 
-Because voice assistants rely on areas, they will not function correctly with respect to those. This applies to both Home Assistant built-in voice functionality, as well as external systems. This is a limitation that I plan to address in the future.
+To be able to target areas with Home Assistant Assist, special area emulation is performed. To enable it, simply list which labels correspond to areas. For example:
+
+```yaml
+arturs_labels:
+  early_loader_hook: true
+  areas: [ground_floor, living_room, tv_area]
+  labels:
+    ground_floor:
+      parents:
+        - home
+    living_room:
+      parents:
+        - ground_floor
+    tv_area:
+      parents:
+        - living_room
+    battery_devices:
+      parents:
+        - sensors
+```
+
+The voice assistant is specially patched to support full capabilities of the system. When you target a parent area, all devices from child areas will be automatically included.
+
+External voice assistants are not supported. They tend to have their own area systems, which are not capable of arbitrary nesting.
+
+The LLM-based assistants are currently not supported, but may be in the future.
 
 ## Support
 
