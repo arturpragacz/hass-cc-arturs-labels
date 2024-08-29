@@ -10,10 +10,7 @@ from typing import TypedDict
 
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import area_registry as old_ar  # noqa: ICN001
-from homeassistant.helpers.normalized_name_base_registry import (
-    NormalizedNameBaseRegistryItems,
-    normalize_name,
-)
+from homeassistant.helpers.normalized_name_base_registry import normalize_name
 from homeassistant.helpers.singleton import singleton
 from homeassistant.util.event_type import EventType
 from homeassistant.util.hass_dict import HassKey
@@ -49,6 +46,11 @@ class AreaEntry(OldAreaEntry):
     shadow_labels: set[str]
 
 
+@dataclass(frozen=True, kw_only=True)
+class LabelAreaEntry(AreaEntry):
+    """Label Area Registry Entry."""
+
+
 class AreaRegistryItems(old_ar.AreaRegistryItems):
     """Container for area registry items, maps area id -> entry."""
 
@@ -74,8 +76,25 @@ class AreaRegistryItems(old_ar.AreaRegistryItems):
         super()._index_entry(key, entry)
 
 
-class LabelRegistryItems(NormalizedNameBaseRegistryItems[OldAreaEntry]):
+class LabelRegistryItems(AreaRegistryItems):
     """Container for label area registry items, maps area id -> entry."""
+
+    def _index_entry(self, key: str, entry: OldAreaEntry) -> None:
+        """Index an entry."""
+        if type(entry) is not LabelAreaEntry:
+            entry_dict = dataclasses.asdict(entry)
+            kwargs: dict = {}
+            if type(entry) is not AreaEntry:
+                kwargs["shadow_floor_id"] = entry.floor_id
+                kwargs["shadow_labels"] = entry.labels
+                entry_dict["floor_id"] = NULL_FLOOR_ID
+
+            entry_dict["labels"] = [entry.id]
+
+            entry = LabelAreaEntry(**entry_dict, **kwargs)
+            self.data[key] = entry
+
+        super(AreaRegistryItems, self)._index_entry(key, entry)
 
 
 class AreaRegistry(old_ar.AreaRegistry):
@@ -96,7 +115,7 @@ class AreaRegistry(old_ar.AreaRegistry):
     @callback
     def async_list_areas(self, active: bool = False) -> Iterable[OldAreaEntry]:
         """Get all label areas."""
-        items = self._label_areas if active else self.areas.view
+        items = self._label_areas if active else self.areas
         return items.values()
 
     @callback
@@ -220,6 +239,12 @@ class AreaRegistry(old_ar.AreaRegistry):
         self.hass.bus.async_fire(
             EVENT_AREA_REGISTRY_LABEL_UPDATED,
             EventAreaRegistryLabelUpdatedData(),
+        )
+
+        # for frontend
+        self.hass.bus.async_fire(
+            old_ar.EVENT_AREA_REGISTRY_UPDATED,
+            old_ar.EventAreaRegistryUpdatedData(action="update", area_id=""),
         )
 
     @callback

@@ -22,6 +22,7 @@ from .overrides import (
     service as service_helper,
 )
 from .overrides.config import (
+    area_registry as con_ar,
     device_registry as con_dr,
     entity_registry as con_er,
     label_registry as con_lr,
@@ -87,9 +88,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     intent_helper.async_setup(hass)
     conversation_default_agent.async_setup(hass)
 
-    con_lr.async_setup(hass)
-    con_dr.async_setup(hass)
     con_er.async_setup(hass)
+    con_dr.async_setup(hass)
+    con_lr.async_setup(hass)
+    con_ar.async_setup(hass)
 
     async def _handle_reload(service_call: ServiceCall) -> None:
         await async_reload(hass)
