@@ -5,6 +5,7 @@ from typing import TypedDict
 
 from hassil.intents import SlotList
 
+# pylint: disable-next=hass-component-root-import
 from homeassistant.components.conversation.default_agent import (
     DefaultAgent as OldDefaultAgent,
     TextSlotList,

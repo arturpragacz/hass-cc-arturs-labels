@@ -3,9 +3,9 @@
 import logging
 from typing import Any
 
-import homeassistant.components.config.device_registry as old_m
+from homeassistant.components.config import device_registry as old_m
 import homeassistant.components.websocket_api as api
-from homeassistant.components.websocket_api.connection import ActiveConnection
+from homeassistant.components.websocket_api import ActiveConnection
 from homeassistant.core import HomeAssistant, callback
 
 from ..utils import remove_assign_label_id
