@@ -76,7 +76,7 @@ class AreaRegistryItems(old_ar.AreaRegistryItems):
         super()._index_entry(key, entry)
 
 
-class LabelRegistryItems(AreaRegistryItems):
+class LabelAreaRegistryItems(AreaRegistryItems):
     """Container for label area registry items, maps area id -> entry."""
 
     def _index_entry(self, key: str, entry: OldAreaEntry) -> None:
@@ -103,7 +103,7 @@ class AreaRegistry(old_ar.AreaRegistry):
     areas: AreaRegistryItems
 
     _old_registry: old_ar.AreaRegistry
-    _label_areas: LabelRegistryItems
+    _label_areas: LabelAreaRegistryItems
 
     def __init__(self, hass: HomeAssistant, old_registry: old_ar.AreaRegistry) -> None:
         """Initialize the device registry."""
@@ -158,8 +158,7 @@ class AreaRegistry(old_ar.AreaRegistry):
         """Delete area. Don't fire events."""
         self.hass.verify_event_loop_thread("area_registry.async_delete")
 
-        old = self.areas[area_id]
-        del self.areas[area_id]
+        old = self.areas.pop(area_id)
         # we don't clear it from entities and devices on purpose
 
         new = self.areas[new_area_id] = dataclasses.replace(old, id=new_area_id)
@@ -205,7 +204,7 @@ class AreaRegistry(old_ar.AreaRegistry):
         """Update label areas in registry."""
         lab_reg = lr.async_get(self.hass)
 
-        label_areas = LabelRegistryItems()
+        label_areas = LabelAreaRegistryItems()
         areas_created: list[str] = []
         for label_id in lab_reg.areas:
             area = self.async_get_area(label_id)
@@ -279,7 +278,7 @@ def async_load(hass: HomeAssistant) -> None:
 
 @callback
 def _async_setup_labels(hass: HomeAssistant, registry: AreaRegistry) -> None:
-    """Clean up entities caches when labels ancestry updated."""
+    """Respond to labels extra updated."""
 
     @callback
     def _handle_label_registry_extra_update(

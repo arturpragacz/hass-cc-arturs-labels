@@ -312,7 +312,7 @@ def _async_get_assigned_labels(
 
 @callback
 def _async_setup_labels(hass: HomeAssistant, registry: EntityRegistry) -> None:
-    """Clean up entities caches when labels ancestry updated."""
+    """Respond to labels extra updated."""
 
     @callback
     def _handle_label_registry_extra_update(

@@ -265,7 +265,7 @@ def async_load(hass: HomeAssistant) -> None:
 
 @callback
 def _async_setup_labels(hass: HomeAssistant, registry: DeviceRegistry) -> None:
-    """Clean up entities caches when labels ancestry updated."""
+    """Respond to labels extra updated."""
 
     @callback
     def _handle_label_registry_extra_update(
