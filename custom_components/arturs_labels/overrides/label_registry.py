@@ -35,9 +35,11 @@ class EventLabelRegistryExtraUpdatedData(TypedDict):
 
 type EventLabelRegistryExtraUpdated = Event[EventLabelRegistryExtraUpdatedData]
 
+OldLabelEntry = old_lr.LabelEntry
+
 
 @dataclass(slots=True, frozen=True, kw_only=True)
-class LabelEntry(old_lr.LabelEntry):
+class LabelEntry(OldLabelEntry):
     """Label Registry Entry."""
 
     mut: dict = field(
@@ -63,12 +65,26 @@ class LabelEntry(old_lr.LabelEntry):
         """Equivalents."""
         return self.mut["equivalents"]
 
+    @classmethod
+    def upgrade(cls, entry: OldLabelEntry) -> LabelEntry:
+        """Upgrade entry."""
+        if type(entry) is LabelEntry:
+            return entry
+
+        entry_dict = {
+            field.name: getattr(entry, field.name)
+            for field in dataclasses.fields(entry)
+            if field.init
+        }
+
+        return LabelEntry(**entry_dict)
+
 
 def _is_label_special(label_id: str) -> bool:
     return ":" in label_id
 
 
-class LabelRegistryItems(NormalizedNameBaseRegistryItems[old_lr.LabelEntry]):
+class LabelRegistryItems(NormalizedNameBaseRegistryItems[OldLabelEntry]):
     """Container for label registry items, maps label_id -> entry."""
 
     view: Mapping[str, LabelEntry]
@@ -80,9 +96,7 @@ class LabelRegistryItems(NormalizedNameBaseRegistryItems[old_lr.LabelEntry]):
 
     def _index_entry(self, key: str, entry: old_lr.LabelEntry) -> None:
         """Index an entry."""
-        if type(entry) is not LabelEntry:
-            entry = self.data[key] = LabelEntry(**dataclasses.asdict(entry))
-
+        entry = self.data[key] = LabelEntry.upgrade(entry)
         super()._index_entry(key, entry)
 
 

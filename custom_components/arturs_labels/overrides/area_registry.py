@@ -10,7 +10,6 @@ from typing import TypedDict
 
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import area_registry as old_ar  # noqa: ICN001
-from homeassistant.helpers.normalized_name_base_registry import normalize_name
 from homeassistant.helpers.singleton import singleton
 from homeassistant.util.event_type import EventType
 from homeassistant.util.hass_dict import HassKey
@@ -45,10 +44,44 @@ class AreaEntry(OldAreaEntry):
     shadow_floor_id: str | None
     shadow_labels: set[str]
 
+    @staticmethod
+    def upgrade(entry: OldAreaEntry) -> AreaEntry:
+        """Upgrade entry."""
+        if type(entry) is AreaEntry:
+            return entry
+
+        entry_dict = {
+            field.name: getattr(entry, field.name)
+            for field in dataclasses.fields(entry)
+            if field.init
+        }
+        entry_dict["floor_id"] = NULL_FLOOR_ID
+        entry_dict["labels"] = NULL_LABELS
+
+        entry_dict["shadow_floor_id"] = entry.floor_id
+        entry_dict["shadow_labels"] = entry.labels
+
+        return AreaEntry(**entry_dict)
+
 
 @dataclass(frozen=True, kw_only=True)
 class LabelAreaEntry(AreaEntry):
     """Label Area Registry Entry."""
+
+    @staticmethod
+    def upgrade_2(entry: AreaEntry) -> LabelAreaEntry:
+        """Upgrade entry."""
+        if type(entry) is LabelAreaEntry:
+            return entry
+
+        entry_dict = {
+            field.name: getattr(entry, field.name)
+            for field in dataclasses.fields(entry)
+            if field.init
+        }
+        entry_dict["labels"] = [entry.id]
+
+        return LabelAreaEntry(**entry_dict)
 
 
 class AreaRegistryItems(old_ar.AreaRegistryItems):
@@ -63,16 +96,7 @@ class AreaRegistryItems(old_ar.AreaRegistryItems):
 
     def _index_entry(self, key: str, entry: OldAreaEntry) -> None:
         """Index an entry."""
-        if type(entry) is not AreaEntry:
-            entry_dict = dataclasses.asdict(entry)
-            entry_dict["floor_id"] = NULL_FLOOR_ID
-            entry_dict["labels"] = NULL_LABELS
-
-            entry = AreaEntry(
-                **entry_dict, shadow_floor_id=entry.floor_id, shadow_labels=entry.labels
-            )
-            self.data[key] = entry
-
+        entry = self.data[key] = AreaEntry.upgrade(entry)
         super()._index_entry(key, entry)
 
 
@@ -81,19 +105,11 @@ class LabelAreaRegistryItems(AreaRegistryItems):
 
     def _index_entry(self, key: str, entry: OldAreaEntry) -> None:
         """Index an entry."""
-        if type(entry) is not LabelAreaEntry:
-            entry_dict = dataclasses.asdict(entry)
-            kwargs: dict = {}
-            if type(entry) is not AreaEntry:
-                kwargs["shadow_floor_id"] = entry.floor_id
-                kwargs["shadow_labels"] = entry.labels
-                entry_dict["floor_id"] = NULL_FLOOR_ID
+        if not isinstance(entry, AreaEntry):  # should never happen
+            _LOGGER.warning("Got unexpected OldAreaEntry")
+            entry = AreaEntry.upgrade(entry)
 
-            entry_dict["labels"] = [entry.id]
-
-            entry = LabelAreaEntry(**entry_dict, **kwargs)
-            self.data[key] = entry
-
+        entry = self.data[key] = LabelAreaEntry.upgrade_2(entry)
         super(AreaRegistryItems, self)._index_entry(key, entry)
 
 
@@ -119,11 +135,9 @@ class AreaRegistry(old_ar.AreaRegistry):
         return items.values()
 
     @callback
-    def _async_create_id(self, id: str, *, name: str) -> OldAreaEntry:
+    def _async_create_id(self, id: str, *, name: str) -> AreaEntry:
         """Create a new area. Don't fire events."""
         self.hass.verify_event_loop_thread("area_registry.async_create")
-
-        normalized_name = normalize_name(name)
 
         area = OldAreaEntry(
             aliases=set(),
@@ -132,14 +146,13 @@ class AreaRegistry(old_ar.AreaRegistry):
             id=id,
             labels=set(),
             name=name,
-            normalized_name=normalized_name,
             picture=None,
         )
 
         self.areas[area.id] = area
         self.async_schedule_save()
 
-        return area
+        return self.areas.view[area.id]
 
     @callback
     def async_create(self, *args, floor_id=None, labels=None, **kwargs) -> OldAreaEntry:
@@ -154,24 +167,23 @@ class AreaRegistry(old_ar.AreaRegistry):
         super().async_delete(area_id, *args, **kwargs)
 
     @callback
-    def _async_update_id(self, area_id: str, *, new_area_id: str) -> OldAreaEntry:
+    def _async_update_id(self, area_id: str, *, new_area_id: str) -> AreaEntry:
         """Delete area. Don't fire events."""
         self.hass.verify_event_loop_thread("area_registry.async_delete")
 
         old = self.areas.pop(area_id)
         # we don't clear it from entities and devices on purpose
 
-        new = self.areas[new_area_id] = dataclasses.replace(old, id=new_area_id)
+        self.areas[new_area_id] = dataclasses.replace(old, id=new_area_id)
         self.async_schedule_save()
 
-        return new
+        return self.areas.view[new_area_id]
 
     @callback
-    def _async_update(
-        self, *args, floor_id=None, labels=None, **kwargs
-    ) -> OldAreaEntry:
+    def _async_update(self, *args, floor_id=None, labels=None, **kwargs) -> AreaEntry:
         """Update properties of an area."""
-        area = super()._async_update(*args, **kwargs)
+        raw_area = super()._async_update(*args, **kwargs)
+        area = self.areas.view[raw_area.id]
 
         if area.id in self._label_areas:
             self._label_areas[area.id] = area
