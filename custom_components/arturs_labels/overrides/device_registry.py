@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from functools import cached_property
 import logging
 from typing import Any, TypedDict, cast
 
@@ -20,7 +19,11 @@ from homeassistant.util.event_type import EventType
 from homeassistant.util.hass_dict import HassKey
 
 from . import label_registry as lr
-from .registry import RegistryEntryBase, async_get_effective_labels
+from .registry import (
+    RegistryEntryBase,
+    async_get_effective_labels,
+    under_cached_property,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +43,7 @@ class EventDeviceRegistryLabelsUpdateData(TypedDict):
 type EventDeviceRegistryLabelsUpdate = Event[EventDeviceRegistryLabelsUpdateData]
 
 
-@attr.s(frozen=True)
+@attr.s(slots=True, frozen=True)
 class DeviceEntry(RegistryEntryBase, old_dr.DeviceEntry):
     """Device Registry Entry."""
 
@@ -52,7 +55,7 @@ class DeviceEntry(RegistryEntryBase, old_dr.DeviceEntry):
         result["area_id"] = self.shadow_area_id
         return result
 
-    @cached_property
+    @under_cached_property
     def as_storage_fragment(self) -> json_fragment:
         """Return a json fragment for storage."""
         self.set_area_id_shadow(False)

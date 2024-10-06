@@ -37,7 +37,7 @@ type EventAreaRegistryLabelUpdated = Event[EventAreaRegistryLabelUpdatedData]
 OldAreaEntry = old_ar.AreaEntry
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(slots=True, frozen=True, kw_only=True)
 class AreaEntry(OldAreaEntry):
     """Area Registry Entry."""
 

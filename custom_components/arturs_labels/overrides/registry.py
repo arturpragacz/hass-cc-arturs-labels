@@ -1,6 +1,6 @@
 """Provide a registry base."""
 
-from functools import cached_property
+from typing import TYPE_CHECKING
 
 import attr
 
@@ -8,6 +8,12 @@ from homeassistant.core import callback
 
 from . import label_registry as lr
 from .utils import add_assign_label_id
+
+if TYPE_CHECKING:
+    # mypy cannot workout _cache Protocol with attrs
+    from propcache import cached_property as under_cached_property
+else:
+    from propcache import under_cached_property
 
 NULL_AREA: None = None
 
@@ -27,7 +33,7 @@ class RegistryEntryBase:
         """Set effective labels init."""
         self.__dict__["extra_labels_init"] = value
 
-    @cached_property
+    @under_cached_property
     def _frontend_labels(self) -> list[str]:
         labels = list(self.effective_labels)
         labels += [add_assign_label_id(label_id) for label_id in self.labels]

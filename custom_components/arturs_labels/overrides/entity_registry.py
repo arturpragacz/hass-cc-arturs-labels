@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Mapping
-from functools import cached_property
 import logging
 from typing import Any, cast
 
@@ -22,14 +21,18 @@ from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.util.hass_dict import HassKey
 
 from . import device_registry as dr, label_registry as lr
-from .registry import RegistryEntryBase, async_get_effective_labels
+from .registry import (
+    RegistryEntryBase,
+    async_get_effective_labels,
+    under_cached_property,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 DATA_REGISTRY: HassKey[EntityRegistry] = HassKey("arturs_entity_registry")
 
 
-@attr.s(frozen=True)
+@attr.s(slots=True, frozen=True)
 class RegistryEntry(RegistryEntryBase, old_er.RegistryEntry):
     """Entity Registry Entry."""
 
@@ -47,7 +50,7 @@ class RegistryEntry(RegistryEntryBase, old_er.RegistryEntry):
         display_dict["ai"] = self.shadow_area_id
         return display_dict
 
-    @cached_property
+    @under_cached_property
     def as_partial_dict(self) -> dict[str, Any]:
         """Return a partial dict representation of the entry."""
         partial_dict = super().as_partial_dict
@@ -55,7 +58,7 @@ class RegistryEntry(RegistryEntryBase, old_er.RegistryEntry):
         partial_dict["area_id"] = self.shadow_area_id
         return partial_dict
 
-    @cached_property
+    @under_cached_property
     def as_storage_fragment(self) -> json_fragment:
         """Return a json fragment for storage."""
         self.set_area_id_shadow(False)
