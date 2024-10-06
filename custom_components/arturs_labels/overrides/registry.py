@@ -1,6 +1,6 @@
 """Provide a registry base."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import attr
 
@@ -18,8 +18,31 @@ else:
 NULL_AREA: None = None
 
 
-@attr.s(frozen=True, kw_only=True)
-class RegistryEntryBase:
+class RegistryEntryBaseMeta(type):
+    """Registry Entry Base metaclass."""
+
+    collected_attrs: dict[str, Any] | None = None
+
+    def __new__(mcs, name, bases, attrs):  # noqa: N804
+        """Create new Registry Entry class."""
+        if name == "RegistryEntryBase":
+            if mcs.collected_attrs is None:
+                mcs.collected_attrs = attrs
+
+        elif bases and bases[0] is RegistryEntryBase:
+            derive_type = bases[1]
+
+            @attr.s(slots=True, frozen=True, kw_only=True)
+            class RegistryEntryBaseDerived(derive_type):
+                vars().update(mcs.collected_attrs)
+
+            bases = (RegistryEntryBaseDerived,)
+
+        return super().__new__(mcs, name, bases, attrs)
+
+
+@attr.s(slots=True, frozen=True, kw_only=True)
+class RegistryEntryBase(metaclass=RegistryEntryBaseMeta):
     """Registry Entry Base for entities and devices."""
 
     labels: set[str] = attr.ib(factory=set)
@@ -31,7 +54,7 @@ class RegistryEntryBase:
 
     def set_extra_labels_init(self, value: bool = True) -> None:
         """Set effective labels init."""
-        self.__dict__["extra_labels_init"] = value
+        object.__setattr__(self, "extra_labels_init", value)
 
     @under_cached_property
     def _frontend_labels(self) -> list[str]:
@@ -42,9 +65,9 @@ class RegistryEntryBase:
     def set_area_id_shadow(self, shadow: bool) -> None:
         """Set area_id."""
         if shadow:
-            self.__dict__["area_id"] = NULL_AREA
+            object.__setattr__(self, "area_id", NULL_AREA)
         else:
-            self.__dict__["area_id"] = self.shadow_area_id
+            object.__setattr__(self, "area_id", self.shadow_area_id)
 
 
 @callback

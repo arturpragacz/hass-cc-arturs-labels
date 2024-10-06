@@ -43,7 +43,7 @@ class EventDeviceRegistryLabelsUpdateData(TypedDict):
 type EventDeviceRegistryLabelsUpdate = Event[EventDeviceRegistryLabelsUpdateData]
 
 
-@attr.s(slots=True, frozen=True)
+@attr.s(slots=True, frozen=True, kw_only=True)
 class DeviceEntry(RegistryEntryBase, old_dr.DeviceEntry):
     """Device Registry Entry."""
 

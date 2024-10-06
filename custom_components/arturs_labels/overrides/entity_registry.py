@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 DATA_REGISTRY: HassKey[EntityRegistry] = HassKey("arturs_entity_registry")
 
 
-@attr.s(slots=True, frozen=True)
+@attr.s(slots=True, frozen=True, kw_only=True)
 class RegistryEntry(RegistryEntryBase, old_er.RegistryEntry):
     """Entity Registry Entry."""
 
