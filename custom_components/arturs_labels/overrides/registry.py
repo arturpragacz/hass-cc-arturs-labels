@@ -19,7 +19,11 @@ NULL_AREA: None = None
 
 
 class RegistryEntryBaseMeta(type):
-    """Registry Entry Base metaclass."""
+    """Registry Entry Base metaclass.
+
+    This fixes TypeError: multiple bases have instance lay-out conflict.
+    This problem is generated when multiple bases have non-empty slots.
+    """
 
     collected_attrs: dict[str, Any] | None = None
 
@@ -30,10 +34,10 @@ class RegistryEntryBaseMeta(type):
                 mcs.collected_attrs = attrs
 
         elif bases and bases[0] is RegistryEntryBase:
-            derive_type = bases[1]
+            derive_types = bases[1:]
 
             @attr.s(slots=True, frozen=True, kw_only=True)
-            class RegistryEntryBaseDerived(derive_type):
+            class RegistryEntryBaseDerived(*derive_types):
                 vars().update(mcs.collected_attrs)
 
             bases = (RegistryEntryBaseDerived,)
@@ -51,6 +55,8 @@ class RegistryEntryBase(metaclass=RegistryEntryBaseMeta):
 
     area_id: str | None = attr.ib(init=False, default=NULL_AREA)
     shadow_area_id: str | None = attr.ib(alias="area_id", default=None)
+
+    _cache: dict[str, Any] = attr.ib(factory=dict, eq=False, init=False)
 
     def set_extra_labels_init(self, value: bool = True) -> None:
         """Set effective labels init."""
