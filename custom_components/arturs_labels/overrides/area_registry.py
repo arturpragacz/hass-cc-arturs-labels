@@ -8,6 +8,9 @@ from dataclasses import dataclass
 import logging
 from typing import TypedDict
 
+from packaging.version import Version
+
+from homeassistant.const import __version__ as HA_VERSION_STRING
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import area_registry as old_ar  # noqa: ICN001
 from homeassistant.helpers.singleton import singleton
@@ -17,6 +20,8 @@ from homeassistant.util.hass_dict import HassKey
 from . import label_registry as lr
 
 _LOGGER = logging.getLogger(__name__)
+
+HA_VERSION = Version(HA_VERSION_STRING)
 
 DATA_REGISTRY: HassKey[AreaRegistry] = HassKey("arturs_area_registry")
 
@@ -139,6 +144,15 @@ class AreaRegistry(old_ar.AreaRegistry):
         """Create a new area. Don't fire events."""
         self.hass.verify_event_loop_thread("area_registry.async_create")
 
+        normalized_name = {}
+        if HA_VERSION <= Version("2024.11.dev"):  # noqa: SIM300
+            # pylint: disable-next=import-outside-toplevel
+            from homeassistant.helpers.normalized_name_base_registry import (
+                normalize_name,
+            )
+
+            normalized_name["normalized_name"] = normalize_name(name)
+
         area = OldAreaEntry(
             aliases=set(),
             floor_id=None,
@@ -147,6 +161,7 @@ class AreaRegistry(old_ar.AreaRegistry):
             labels=set(),
             name=name,
             picture=None,
+            **normalized_name,  # type: ignore [arg-type]
         )
 
         self.areas[area.id] = area
