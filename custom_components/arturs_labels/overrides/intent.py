@@ -96,7 +96,7 @@ def _find_areas(name: str, areas: ar.AreaRegistry) -> Iterable[ar.OldAreaEntry]:
                 break
 
 
-def _async_match_areas(
+def _async_match_areas_assistant_and_duplicates(
     hass: HomeAssistant,
     constraints: MatchTargetsConstraints,
     preferences: MatchTargetsPreferences,
@@ -139,6 +139,12 @@ def _async_match_areas(
             return return_func(
                 MatchTargetsResult(False, MatchFailedReason.AREA, areas=targeted_areas)
             )
+
+    if constraints.assistant:
+        # Check exposure
+        candidates = [c for c in candidates if c.is_exposed]
+        if not candidates:
+            return return_func(MatchTargetsResult(False, MatchFailedReason.ASSISTANT))
 
     if constraints.name and (not constraints.allow_duplicate_names):
         # Check for duplicates
@@ -210,29 +216,31 @@ def async_match_targets(
         if not states:
             return MatchTargetsResult(False, MatchFailedReason.DOMAIN)
 
-    if constraints.assistant:
-        # Filter by exposure
-        states = [
-            s
-            for s in states
-            if async_should_expose(hass, constraints.assistant, s.entity_id)
-        ]
-        if not states:
-            return MatchTargetsResult(False, MatchFailedReason.ASSISTANT)
+    candidates = [
+        MatchTargetsCandidate(
+            state=state,
+            is_exposed=(
+                async_should_expose(hass, constraints.assistant, state.entity_id)
+                if constraints.assistant
+                else True
+            ),
+        )
+        for state in states
+    ]
 
     if constraints.domains and (not filtered_by_domain):
         # Filter by domain (if we didn't already do it)
-        states = [s for s in states if s.domain in constraints.domains]
-        if not states:
+        candidates = [c for c in candidates if c.state.domain in constraints.domains]
+        if not candidates:
             return MatchTargetsResult(False, MatchFailedReason.DOMAIN)
 
     if constraints.states:
         # Filter by state
-        states = [s for s in states if s.state in constraints.states]
-        if not states:
+        candidates = [c for c in candidates if c.state.state in constraints.states]
+        if not candidates:
             return MatchTargetsResult(False, MatchFailedReason.STATE)
 
-    # Exit early so we can avoid registry lookups
+    # Try to exit early so we can avoid registry lookups
     if not (
         constraints.name
         or constraints.features
@@ -240,13 +248,18 @@ def async_match_targets(
         or constraints.area_name
         or constraints.floor_name
     ):
-        return MatchTargetsResult(True, states=states)
+        if constraints.assistant:
+            # Check exposure
+            candidates = [c for c in candidates if c.is_exposed]
+            if not candidates:
+                return MatchTargetsResult(False, MatchFailedReason.ASSISTANT)
+
+        return MatchTargetsResult(True, states=[c.state for c in candidates])
 
     # We need entity registry entries now
     ent_reg = er.async_get(hass)
-    candidates = [
-        MatchTargetsCandidate(s, ent_reg.async_get(s.entity_id)) for s in states
-    ]
+    for candidate in candidates:
+        candidate.entity = ent_reg.async_get(candidate.state.entity_id)
 
     if constraints.name:
         # Filter by entity name or alias
@@ -269,9 +282,12 @@ def async_match_targets(
             return MatchTargetsResult(False, MatchFailedReason.DEVICE_CLASS)
 
     # Check area constraints
+    # Check exposure
     # Check for duplicates
-    candidates, targeted_areas, match_result = _async_match_areas(
-        hass, constraints, preferences, candidates
+    candidates, targeted_areas, match_result = (
+        _async_match_areas_assistant_and_duplicates(
+            hass, constraints, preferences, candidates
+        )
     )
 
     if match_result is not None:
