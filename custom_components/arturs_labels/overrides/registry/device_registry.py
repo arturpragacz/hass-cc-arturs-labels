@@ -19,7 +19,7 @@ from homeassistant.util.event_type import EventType
 from homeassistant.util.hass_dict import HassKey
 
 from . import label_registry as lr
-from .registry import (
+from .registry_base import (
     RegistryEntryBase,
     async_get_effective_labels,
     under_cached_property,

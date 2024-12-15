@@ -13,12 +13,8 @@ from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.typing import ConfigType
 
 from .overrides import (
-    area_registry as ar,
     conversation_default_agent,
-    device_registry as dr,
-    entity_registry as er,
     intent as intent_helper,
-    label_registry as lr,
     service as service_helper,
 )
 from .overrides.config import (
@@ -26,6 +22,12 @@ from .overrides.config import (
     device_registry as con_dr,
     entity_registry as con_er,
     label_registry as con_lr,
+)
+from .overrides.registry import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+    label_registry as lr,
 )
 
 _LOGGER = logging.getLogger(__name__)

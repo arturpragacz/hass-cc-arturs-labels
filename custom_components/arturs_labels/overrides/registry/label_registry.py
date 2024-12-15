@@ -18,7 +18,8 @@ from homeassistant.util.event_type import EventType
 from homeassistant.util.hass_dict import HassKey
 
 if TYPE_CHECKING:
-    from .. import LabelsConfig
+    # pylint: disable-next=hass-absolute-import
+    from ... import LabelsConfig
 
 _LOGGER = logging.getLogger(__name__)
 

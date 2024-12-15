@@ -16,7 +16,7 @@ from homeassistant.helpers.intent import (
     MatchTargetsResult,
 )
 
-from . import area_registry as ar, entity_registry as er
+from .registry import area_registry as ar, entity_registry as er
 
 
 class _OldMod(TypedDict, total=False):

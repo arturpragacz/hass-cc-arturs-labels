@@ -21,7 +21,7 @@ from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.util.hass_dict import HassKey
 
 from . import device_registry as dr, label_registry as lr
-from .registry import (
+from .registry_base import (
     RegistryEntryBase,
     async_get_effective_labels,
     under_cached_property,

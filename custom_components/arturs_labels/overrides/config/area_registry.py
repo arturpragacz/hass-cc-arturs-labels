@@ -8,7 +8,7 @@ import homeassistant.components.websocket_api as api
 from homeassistant.components.websocket_api import ActiveConnection
 from homeassistant.core import HomeAssistant, callback
 
-from .. import area_registry as ar
+from ..registry import area_registry as ar
 from .utils import async_setup as async_setup_template
 
 _LOGGER = logging.getLogger(__name__)

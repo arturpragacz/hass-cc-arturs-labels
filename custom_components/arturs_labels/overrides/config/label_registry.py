@@ -8,7 +8,7 @@ import homeassistant.components.websocket_api as api
 from homeassistant.components.websocket_api import ActiveConnection
 from homeassistant.core import HomeAssistant, callback
 
-from .. import label_registry as lr
+from ..registry import label_registry as lr
 from ..utils import add_assign_label_id, add_assign_label_name
 from .utils import async_setup as async_setup_template
 

@@ -7,7 +7,7 @@ import homeassistant.helpers.service as old_service
 from homeassistant.helpers.service import SelectedEntities, ServiceTargetSelector
 from homeassistant.loader import bind_hass
 
-from . import device_registry as dr
+from .registry import device_registry as dr
 
 old_func: Callable[[HomeAssistant, ServiceCall, bool], SelectedEntities] | None = None
 

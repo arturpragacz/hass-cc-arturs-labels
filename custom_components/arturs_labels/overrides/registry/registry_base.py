@@ -6,8 +6,8 @@ import attr
 
 from homeassistant.core import callback
 
+from ..utils import add_assign_label_id
 from . import label_registry as lr
-from .utils import add_assign_label_id
 
 if TYPE_CHECKING:
     # mypy cannot workout _cache Protocol with attrs

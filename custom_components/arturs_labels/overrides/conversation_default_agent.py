@@ -12,7 +12,7 @@ from homeassistant.components.conversation.default_agent import (
 )
 from homeassistant.core import HomeAssistant, callback
 
-from . import area_registry as ar, device_registry as dr, label_registry as lr
+from .registry import area_registry as ar, device_registry as dr, label_registry as lr
 
 
 class _OldDefaultAgent(TypedDict, total=False):
