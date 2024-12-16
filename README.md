@@ -6,7 +6,7 @@ As the name implies I made it primarily for my own usage. Since I put in all tha
 
 ## What does it do?
 
-Currently the primary functionality of this component is to make it possible for labels to form hierarchies. Any label can become a child of any other label. This means that an entity that is assigned a child label by the user, will be assigned every parent label automatically by the system.
+Currently this component makes it possible for labels to form hierarchies. Any label can become a child of any other label. This means that an entity that is assigned a child label by the user, will be assigned every parent label automatically by the system. Additionally it is possible to formulate dynamic rules for label membership, that will be automatically evaluated.
 
 ## Start guide
 
@@ -37,12 +37,13 @@ As an example, let's use the following labels:
 These are just area-related labels. You might also consider making more functional labels, like:
 
 - Sensors
-- Battery devices
-- Important Battery devices
 - Motion sensors
 - Security motion sensors
 - Water pumps
 - Critical
+- Battery devices
+- Important Battery devices
+- Important
 
 Off course there are many other possibilities. The whole point of the system is that it is extremely flexible and can therefore fit a large group of diverse use cases.
 
@@ -89,14 +90,6 @@ arturs_labels:
       parents:
         - first_floor
         - low_light_rooms
-    # all the other area-related labels...
-    battery_devices:
-      parents:
-        - sensors
-    important_battery_devices:
-      parents:
-        - battery_devices
-        - critical
     motion_sensors:
       parents:
         - sensors
@@ -107,10 +100,23 @@ arturs_labels:
     water_pumps:
       parents:
         - critical
-
 ```
 
 Each time you make changes to the configuration, you have to reload the component or restart Home Assistant.
+
+### Label rules
+
+You can also define fully dynamic rules for label membership. This is useful, when you want your entity to be assigned a label only if it already has some combination of other labels.
+
+```yaml
+arturs_labels:
+  labels:
+    battery:
+      parents:
+        - sensors
+  label_rules:
+    important_battery: label("battery") and label("important")
+```
 
 ### Install prerequisites
 

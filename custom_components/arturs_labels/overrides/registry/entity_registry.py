@@ -23,6 +23,7 @@ from homeassistant.util.hass_dict import HassKey
 from . import device_registry as dr, label_registry as lr
 from .registry_base import (
     RegistryEntryBase,
+    async_get_ancestry_labels,
     async_get_effective_labels,
     under_cached_property,
 )
@@ -92,7 +93,8 @@ class EntityRegistryItems(old_er.EntityRegistryItems):
             dev_reg = old_dr.async_get(self.hass)
 
             assigned_labels = _async_get_assigned_labels(dev_reg, entry)
-            effective_labels = async_get_effective_labels(lab_reg, assigned_labels)
+            ancestry_labels = async_get_ancestry_labels(lab_reg, assigned_labels)
+            effective_labels = async_get_effective_labels(lab_reg, ancestry_labels)
 
             if wrong_type:
                 entry_dict = attr.asdict(
@@ -101,6 +103,7 @@ class EntityRegistryItems(old_er.EntityRegistryItems):
                 entry = RegistryEntry(
                     **entry_dict,
                     assigned_labels=assigned_labels,
+                    ancestry_labels=ancestry_labels,
                     effective_labels=effective_labels,
                 )
             else:
@@ -108,6 +111,7 @@ class EntityRegistryItems(old_er.EntityRegistryItems):
                 entry = attr.evolve(
                     entry,
                     assigned_labels=assigned_labels,
+                    ancestry_labels=ancestry_labels,
                     effective_labels=effective_labels,
                 )
 
@@ -244,9 +248,11 @@ class EntityRegistry(old_er.EntityRegistry):
                 continue
 
             assigned_labels = _async_get_assigned_labels(dev_reg, entry)
-            effective_labels = async_get_effective_labels(lab_reg, assigned_labels)
+            ancestry_labels = async_get_ancestry_labels(lab_reg, assigned_labels)
+            effective_labels = async_get_effective_labels(lab_reg, ancestry_labels)
             if (
                 assigned_labels == entry.assigned_labels
+                and ancestry_labels == entry.ancestry_labels
                 and effective_labels == entry.effective_labels
             ):
                 continue
@@ -254,6 +260,7 @@ class EntityRegistry(old_er.EntityRegistry):
             self.entities[entity_id] = attr.evolve(
                 entry,
                 assigned_labels=assigned_labels,
+                ancestry_labels=ancestry_labels,
                 effective_labels=effective_labels,
                 extra_labels_init=False,
             )

@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping
 import dataclasses
 from dataclasses import dataclass, field
 import logging
+from types import CodeType
 from typing import TYPE_CHECKING, TypedDict, cast
 
 from homeassistant.core import Event, HomeAssistant, callback
@@ -107,9 +108,11 @@ class LabelRegistry(old_lr.LabelRegistry):
     labels: LabelRegistryItems
 
     areas: set[str]  # real areas
+    label_rules: dict[str, CodeType]  # real label rules
 
     _old_registry: old_lr.LabelRegistry
     _parents: dict[str, set[str]]
+    _label_rules: dict[str, CodeType]
     _areas: set[str]
 
     def __init__(self, hass: HomeAssistant, old_registry: old_lr.LabelRegistry) -> None:
@@ -168,11 +171,24 @@ class LabelRegistry(old_lr.LabelRegistry):
         }
         for label_id, parents in labels_parents.items():
             parents.discard(label_id)
-            discards = [parent for parent in parents if _is_label_special(parent)]
+            discards = (parent for parent in parents if _is_label_special(parent))
             parents.difference_update(discards)
+
+        label_rules: dict[str, CodeType] = {}
+        for label_id, code_str in labels_config.label_rules.items():
+            if _is_label_special(label_id):
+                continue
+            try:
+                code = compile(code_str, "configuration.yaml", "eval")
+            except (SyntaxError, ValueError):
+                _LOGGER.warning("Compilation error for: %s", code_str)
+                continue
+            label_rules[label_id] = code
+
         areas = {a for a in labels_config.areas if not _is_label_special(a)}
 
         self._parents = labels_parents
+        self._label_rules = label_rules
         self._areas = areas
         self._async_compute_extra(fire=fire)
 
@@ -190,6 +206,9 @@ class LabelRegistry(old_lr.LabelRegistry):
 
         self._async_compute_ancestry()
 
+        self.label_rules = {
+            k: v for k, v in self._label_rules.items() if k in all_label_ids
+        }
         self.areas = self._areas & all_label_ids
 
         if fire:
@@ -276,7 +295,7 @@ class LabelRegistry(old_lr.LabelRegistry):
 
     @callback
     def async_get_ancestors(self, label_ids: Iterable[str]) -> set[str]:
-        """Get labels' ancestors."""
+        """Get labels' ancestors. Includes self."""
         ancestors = set()
 
         for label_id in label_ids:

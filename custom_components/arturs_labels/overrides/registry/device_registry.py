@@ -21,6 +21,7 @@ from homeassistant.util.hass_dict import HassKey
 from . import label_registry as lr
 from .registry_base import (
     RegistryEntryBase,
+    async_get_ancestry_labels,
     async_get_effective_labels,
     under_cached_property,
 )
@@ -88,7 +89,8 @@ class ActiveDeviceRegistryItems(old_dr.ActiveDeviceRegistryItems):
         if wrong_type or cast(DeviceEntry, entry).extra_labels_init:
             lab_reg = lr.async_get(self.hass)
 
-            effective_labels = async_get_effective_labels(lab_reg, entry.labels)
+            ancestry_labels = async_get_ancestry_labels(lab_reg, entry.labels)
+            effective_labels = async_get_effective_labels(lab_reg, ancestry_labels)
 
             if wrong_type:
                 entry_dict = attr.asdict(
@@ -96,12 +98,14 @@ class ActiveDeviceRegistryItems(old_dr.ActiveDeviceRegistryItems):
                 )
                 entry = DeviceEntry(
                     **entry_dict,
+                    ancestry_labels=ancestry_labels,
                     effective_labels=effective_labels,
                 )
             else:
                 entry = cast(DeviceEntry, entry)
                 entry = attr.evolve(
                     entry,
+                    ancestry_labels=ancestry_labels,
                     effective_labels=effective_labels,
                 )
 
@@ -233,12 +237,19 @@ class DeviceRegistry(old_dr.DeviceRegistry):
         lab_reg = lr.async_get(self.hass)
 
         for device_id, entry in self.devices.view.items():
-            effective_labels = async_get_effective_labels(lab_reg, entry.labels)
-            if effective_labels == entry.effective_labels:
+            ancestry_labels = async_get_ancestry_labels(lab_reg, entry.labels)
+            effective_labels = async_get_effective_labels(lab_reg, ancestry_labels)
+            if (
+                ancestry_labels == entry.ancestry_labels
+                and effective_labels == entry.effective_labels
+            ):
                 continue
 
             self.devices[device_id] = attr.evolve(
-                entry, effective_labels=effective_labels, extra_labels_init=False
+                entry,
+                ancestry_labels=ancestry_labels,
+                effective_labels=effective_labels,
+                extra_labels_init=False,
             )
 
             data: old_dr._EventDeviceRegistryUpdatedData_Update = {

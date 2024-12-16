@@ -46,6 +46,7 @@ CONFIG_SCHEMA = vol.Schema(
     {
         vol.Required(DOMAIN): {
             vol.Required("labels", default={}): LABEL_SCHEMA,
+            vol.Required("label_rules", default={}): {str: str},
             vol.Required("areas", default=[]): vol.All(
                 cv.ensure_list, [str], vol.util.Set()
             ),
@@ -60,6 +61,7 @@ class LabelsConfig:
     """Labels config."""
 
     labels_parents: dict[str, set[str]]
+    label_rules: dict[str, str]
     areas: set[str]
 
 
@@ -69,7 +71,7 @@ def _get_config(config: ConfigType) -> LabelsConfig:
     labels_parents = {}
     for label_id, label_data in conf["labels"].items():
         labels_parents[label_id] = label_data["parents"]
-    return LabelsConfig(labels_parents, conf["areas"])
+    return LabelsConfig(labels_parents, conf["label_rules"], conf["areas"])
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -80,7 +82,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     lr.async_load(hass, labels_config)
 
     # dr has to be loaded before er, so that callbacks
-    # to lr.EVENT_LABEL_REGISTRY_ANCESTRY_UPDATED fire in correct order
+    # to lr.EVENT_LABEL_REGISTRY_EXTRA_UPDATED fire in correct order
     dr.async_load(hass)
 
     er.async_load(hass)

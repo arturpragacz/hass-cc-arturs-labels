@@ -50,6 +50,7 @@ class RegistryEntryBase(metaclass=RegistryEntryBaseMeta):
     """Registry Entry Base for entities and devices."""
 
     labels: set[str] = attr.ib(factory=set)
+    ancestry_labels: set[str] = attr.ib(factory=set)
     effective_labels: set[str] = attr.ib(factory=set)
     extra_labels_init: bool = attr.ib(default=True)
 
@@ -77,8 +78,34 @@ class RegistryEntryBase(metaclass=RegistryEntryBaseMeta):
 
 
 @callback
-def async_get_effective_labels(
+def async_get_ancestry_labels(
     lab_reg: lr.LabelRegistry, assigned_labels: set[str]
 ) -> set[str]:
-    """Get effective labels."""
+    """Get ancestry labels. Includes self."""
     return lab_reg.async_get_ancestors(assigned_labels)
+
+
+@callback
+def async_get_effective_labels(
+    lab_reg: lr.LabelRegistry, ancestry_labels: set[str]
+) -> set[str]:
+    """Get effective labels."""
+
+    def label(label_id: str) -> bool:
+        return label_id in ancestry_labels
+
+    glbls = {"__builtins__": None, "label": label}
+    lcls: dict[str, Any] = {}
+
+    effective_labels = ancestry_labels.copy()
+
+    for label_id, code in lab_reg.label_rules.items():
+        try:
+            result = eval(code, glbls, lcls)  # noqa: S307
+        except Exception:  # noqa: BLE001
+            continue
+
+        if result:
+            effective_labels.add(label_id)
+
+    return effective_labels
