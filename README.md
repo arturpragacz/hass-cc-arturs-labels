@@ -4,12 +4,6 @@ This custom component for Home Assistant expands the use of Labels in the system
 
 As the name implies I made it primarily for my own usage. Since I put in all that work though, I thought it might be useful to some other people as well, so I decided to share it here.
 
-## Disclaimer
-
-This is a beta release. Due to the nature of the system, this component has to integrate very deeply with Home Assistant internals, making it uniquely susceptible to breakage. This means you have to be careful with updates, always have a backup ready just in case.
-
-Because of this beta state some changes in configuration options and system behaviour might be required in the future. Make sure to always read the release notes and make the necessary adjustments.
-
 ## What does it do?
 
 Currently the primary functionality of this component is to make it possible for labels to form hierarchies. Any label can become a child of any other label. This means that an entity that is assigned a child label by the user, will be assigned every parent label automatically by the system.
@@ -179,12 +173,18 @@ arturs_labels:
         - sensors
 ```
 
-The voice assistant is specially patched to support full capabilities of the system. When you target a parent area, all devices from child areas will be automatically included.
+The voice assistant is specially patched to support full capabilities of the system. When you target a parent area, all entities from child areas will be automatically included.
 
 External voice assistants are not supported. They tend to have their own area systems, which are not capable of arbitrary nesting.
 
 The LLM-based assistants are currently not supported, but may be in the future.
 
+## Disclaimer
+
+This is a beta release. Due to the nature of the system, this component has to integrate very deeply with Home Assistant internals, making it uniquely susceptible to breakage. This means you have to be careful with updates, always have a backup ready just in case.
+
+As this component is still in very active development, some changes in configuration options and system behaviour might be required in the future. Make sure to always read the release notes and make the necessary adjustments.
+
 ## Support
 
-If you want to support this project, then the best way to do it currently is to install it and report any bugs that you encounter.
+If you want to support this project, then the best way to do it, is to give it a try and let me know what you think.
