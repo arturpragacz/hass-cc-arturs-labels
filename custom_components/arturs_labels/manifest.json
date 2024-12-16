@@ -1,7 +1,7 @@
 {
   "domain": "arturs_labels",
   "name": "Artur's Labels",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "codeowners": ["@arturpragacz"],
   "integration_type": "system",
   "documentation": "https://github.com/arturpragacz/hass-cc-arturs-labels",
