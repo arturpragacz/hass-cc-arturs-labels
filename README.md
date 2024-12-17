@@ -61,7 +61,7 @@ Make sure to copy the result and store it safely.
 
 ### Create label relations
 
-In order to create relations between labels, you need to designate parents of every label. For identifying each label, you use its `label_id`. As an example, you put the following in your `configuration.yaml` file:
+In order to create relations between labels, you need to designate parents of every label. For identifying each label use its `label_id`. As an example, here's what you can put in your `configuration.yaml` file:
 
 ```yaml
 arturs_labels:
@@ -104,7 +104,7 @@ arturs_labels:
 
 Each time you make changes to the configuration, you have to reload the component or restart Home Assistant.
 
-### Label rules
+### Create label rules (optionally)
 
 You can also define fully dynamic rules for label membership. This is useful, when you want your entity to be assigned a label only if it already has some combination of other labels.
 
