@@ -135,24 +135,17 @@ class AreaRegistry(old_ar.AreaRegistry):
         return items.values()
 
     @callback
-    def _async_create_id(self, id: str, *, name: str) -> AreaEntry:
-        """Create a new area. Don't fire events."""
-        self.hass.verify_event_loop_thread("area_registry.async_create")
+    def _async_create_id(self, area_id: str, *, name: str) -> AreaEntry:
+        """Create a new area with specific id.
 
-        area = OldAreaEntry(
-            aliases=set(),
-            floor_id=None,
-            icon=None,
-            id=id,
-            labels=set(),
-            name=name,
-            picture=None,
-        )
+        Fires 'create' event (which we would rather avoid in the ideal world)
+        """
+        area = super().async_create(name)
 
-        self.areas[area.id] = area
-        self.async_schedule_save()
+        if area.id == area_id:
+            return self.areas.view[area.id]
 
-        return self.areas.view[area.id]
+        return self._async_update_id(area.id, new_area_id=area_id)
 
     @callback
     def async_create(self, *args, floor_id=None, labels=None, **kwargs) -> OldAreaEntry:
@@ -169,8 +162,6 @@ class AreaRegistry(old_ar.AreaRegistry):
     @callback
     def _async_update_id(self, area_id: str, *, new_area_id: str) -> AreaEntry:
         """Delete area. Don't fire events."""
-        self.hass.verify_event_loop_thread("area_registry.async_delete")
-
         old = self.areas.pop(area_id)
         # we don't clear it from entities and devices on purpose
 
@@ -214,6 +205,8 @@ class AreaRegistry(old_ar.AreaRegistry):
     @callback
     def async_update_label_areas(self) -> None:
         """Update label areas in registry."""
+        self.hass.verify_event_loop_thread("area_registry.async_update_label_areas")
+
         lab_reg = lr.async_get(self.hass)
 
         label_areas = LabelAreaRegistryItems()
