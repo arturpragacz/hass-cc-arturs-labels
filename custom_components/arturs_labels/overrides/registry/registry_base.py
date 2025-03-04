@@ -11,9 +11,9 @@ from . import label_registry as lr
 
 if TYPE_CHECKING:
     # mypy cannot workout _cache Protocol with attrs
-    from propcache import cached_property as under_cached_property
+    from propcache.api import cached_property as under_cached_property
 else:
-    from propcache import under_cached_property
+    from propcache.api import under_cached_property
 
 NULL_AREA: None = None
 
