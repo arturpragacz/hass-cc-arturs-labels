@@ -27,7 +27,7 @@ class RegistryEntryBaseMeta(type):
 
     collected_attrs: dict[str, Any] | None = None
 
-    def __new__(mcs, name, bases, attrs):  # noqa: N804
+    def __new__(mcs, name, bases, attrs):
         """Create new Registry Entry class."""
         if name == "RegistryEntryBase":
             if mcs.collected_attrs is None:
