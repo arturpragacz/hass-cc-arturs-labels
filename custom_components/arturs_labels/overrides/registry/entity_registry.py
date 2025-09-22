@@ -97,9 +97,11 @@ class EntityRegistryItems(old_er.EntityRegistryItems):
             effective_labels = async_get_effective_labels(lab_reg, ancestry_labels)
 
             if wrong_type:
-                entry_dict = attr.asdict(
-                    entry, filter=lambda a, _v: a.init, retain_collection_types=True
-                )
+                entry_dict = {
+                    a.alias: getattr(entry, a.name)
+                    for a in attr.fields(old_er.RegistryEntry)
+                    if a.init and a.alias is not None
+                }
                 entry = RegistryEntry(
                     **entry_dict,
                     assigned_labels=assigned_labels,
