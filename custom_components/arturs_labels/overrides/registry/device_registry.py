@@ -179,7 +179,7 @@ class DeviceRegistry(old_dr.DeviceRegistry):
         fire = False
 
         labels = kwargs.get("labels", UNDEFINED)
-        if labels is None or labels == old_entry.labels:
+        if labels is UNDEFINED or labels == old_entry.labels:
             old_entry.set_extra_labels_init(False)
         else:
             fire = True

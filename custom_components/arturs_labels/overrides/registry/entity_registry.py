@@ -189,7 +189,7 @@ class EntityRegistry(old_er.EntityRegistry):
         )
 
     @callback
-    def async_update_entity(self, entity_id: str, **kwargs) -> RegistryEntry:
+    def _async_update_entity(self, entity_id: str, **kwargs) -> RegistryEntry:
         """Update properties of an entity."""
         old_entry = self.entities.view[entity_id]
 
@@ -203,7 +203,7 @@ class EntityRegistry(old_er.EntityRegistry):
         old_entry.set_area_id_shadow(False)
 
         try:
-            new_entry = super().async_update_entity(entity_id, **kwargs)
+            new_entry = super()._async_update_entity(entity_id, **kwargs)
             entity_id = new_entry.entity_id  # could change during update
         finally:
             # in case the entry didn't change
