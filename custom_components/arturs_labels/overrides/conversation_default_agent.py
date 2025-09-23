@@ -12,12 +12,20 @@ from homeassistant.components.conversation.default_agent import (
 )
 from homeassistant.core import HomeAssistant, callback
 
-from .registry import area_registry as ar, device_registry as dr, label_registry as lr
+from .registry import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+    label_registry as lr,
+)
 
 
 class _OldDefaultAgent(TypedDict, total=False):
     make_slot_lists: Callable[[OldDefaultAgent], Awaitable[dict[str, SlotList]]]
-    get_device_area: Callable[[OldDefaultAgent, str | None], ar.OldAreaEntry | None]
+    get_satellite_area_and_device: Callable[
+        [OldDefaultAgent, str | None, str | None],
+        tuple[ar.OldAreaEntry | None, str | None],
+    ]
     listen_clear_slot_list: Callable[[OldDefaultAgent], None]
 
 
@@ -28,13 +36,15 @@ old_default_agent: _OldDefaultAgent = _OldDefaultAgent()
 def async_setup(hass: HomeAssistant) -> bool:
     """Set up the services helper."""
     old_default_agent["make_slot_lists"] = OldDefaultAgent._make_slot_lists  # noqa: SLF001
-    old_default_agent["get_device_area"] = OldDefaultAgent._get_device_area  # noqa: SLF001
+    old_default_agent["get_satellite_area_and_device"] = (
+        OldDefaultAgent._get_satellite_area_and_device  # noqa: SLF001
+    )
     old_default_agent["listen_clear_slot_list"] = (
         OldDefaultAgent._listen_clear_slot_list  # noqa: SLF001
     )
 
     OldDefaultAgent._make_slot_lists = make_slot_lists  # type: ignore [method-assign] # noqa: SLF001
-    OldDefaultAgent._get_device_area = get_device_area  # type: ignore [method-assign] # noqa: SLF001
+    OldDefaultAgent._get_satellite_area_and_device = get_satellite_area_and_device  # type: ignore [method-assign] # noqa: SLF001
     OldDefaultAgent._listen_clear_slot_list = listen_clear_slot_list  # type: ignore [method-assign] # noqa: SLF001
 
     return True
@@ -83,26 +93,32 @@ def listen_clear_slot_list(self: OldDefaultAgent) -> None:
     )
 
 
-def get_device_area(
-    self: OldDefaultAgent, device_id: str | None
-) -> ar.OldAreaEntry | None:
-    """Return area object for given device identifier."""
-    if device_id is None:
-        return None
+def get_satellite_area_and_device(
+    self: OldDefaultAgent, satellite_id: str | None, device_id: str | None = None
+) -> tuple[ar.OldAreaEntry | None, str | None]:
+    """Return area entry and device id."""
+    hass = self.hass
 
-    dev_reg = dr.async_get(self.hass)
-    device = dev_reg.async_get(device_id)
-    if device is None:
-        return None
+    lab_reg = lr.async_get(hass)
 
-    lab_reg = lr.async_get(self.hass)
+    area_ids: set[str] | None = None
 
-    # ultimately we want to use the responsibility area
-    # before that maybe main area (defaulted to smallest area)
-    areas = device.labels & lab_reg.areas
-    if not areas:
-        return None
+    if satellite_id is not None:
+        if (entity_entry := er.async_get(hass).async_get(satellite_id)) is not None:
+            # ultimately we want to use the responsibility area
+            # before that maybe main area (defaulted to smallest area)
+            area_ids = entity_entry.labels & lab_reg.areas
+            device_id = entity_entry.device_id
 
-    area_id = next(iter(areas))
-    area_reg = ar.async_get(self.hass)
-    return area_reg.async_get_area(area_id)
+    elif (
+        device_id is not None
+        and (device_entry := dr.async_get(hass).async_get(device_id)) is not None
+    ):
+        area_ids = device_entry.labels & lab_reg.areas
+
+    if not area_ids:
+        return None, device_id
+
+    area_id = next(iter(area_ids))
+
+    return ar.async_get(hass).async_get_area(area_id), device_id
