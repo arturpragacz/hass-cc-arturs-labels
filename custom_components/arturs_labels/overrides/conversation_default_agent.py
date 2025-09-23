@@ -1,6 +1,6 @@
 """Standard conversation implementation for Home Assistant."""
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import TypedDict
 
 from hassil.intents import SlotList
@@ -16,7 +16,7 @@ from .registry import area_registry as ar, device_registry as dr, label_registry
 
 
 class _OldDefaultAgent(TypedDict, total=False):
-    make_slot_lists: Callable[[OldDefaultAgent], dict[str, SlotList]]
+    make_slot_lists: Callable[[OldDefaultAgent], Awaitable[dict[str, SlotList]]]
     get_device_area: Callable[[OldDefaultAgent, str | None], ar.OldAreaEntry | None]
     listen_clear_slot_list: Callable[[OldDefaultAgent], None]
 
@@ -40,14 +40,13 @@ def async_setup(hass: HomeAssistant) -> bool:
     return True
 
 
-@callback
-def make_slot_lists(self: OldDefaultAgent) -> dict[str, SlotList]:
+async def make_slot_lists(self: OldDefaultAgent) -> dict[str, SlotList]:
     """Create slot lists with areas and entity names/aliases."""
     if self._slot_lists is not None:
         return self._slot_lists
 
     assert "make_slot_lists" in old_default_agent
-    slot_lists = old_default_agent["make_slot_lists"](self)
+    slot_lists = await old_default_agent["make_slot_lists"](self)
 
     # Expose all areas.
     area_reg = ar.async_get(self.hass)
