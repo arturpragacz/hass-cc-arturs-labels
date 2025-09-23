@@ -172,7 +172,7 @@ class DeviceRegistry(old_dr.DeviceRegistry):
         self._store = old_registry._store  # noqa: SLF001
 
     @callback
-    def async_update_device(self, device_id: str, **kwargs) -> DeviceEntry | None:
+    def _async_update_device(self, device_id: str, **kwargs) -> DeviceEntry | None:
         """Update properties of a device."""
         old_entry = self.devices.view[device_id]
 
@@ -187,7 +187,7 @@ class DeviceRegistry(old_dr.DeviceRegistry):
         old_entry.set_area_id_shadow(False)
 
         try:
-            new_entry = super().async_update_device(device_id, **kwargs)
+            new_entry = super()._async_update_device(device_id, **kwargs)
         finally:
             # in case the entry didn't change
             old_entry.set_extra_labels_init()
