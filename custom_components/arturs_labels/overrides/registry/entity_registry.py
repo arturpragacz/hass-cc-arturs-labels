@@ -34,7 +34,7 @@ DATA_REGISTRY: HassKey[EntityRegistry] = HassKey("arturs_entity_registry")
 
 
 @attr.s(slots=True, frozen=True, kw_only=True)
-class RegistryEntry(RegistryEntryBase, old_er.RegistryEntry):
+class RegistryEntry(RegistryEntryBase, old_er.RegistryEntry):  # type: ignore [misc]
     """Entity Registry Entry."""
 
     assigned_labels: set[str] = attr.ib(factory=set)  # from entity and device

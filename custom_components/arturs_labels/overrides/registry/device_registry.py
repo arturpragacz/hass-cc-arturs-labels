@@ -45,7 +45,7 @@ type EventDeviceRegistryLabelsUpdate = Event[EventDeviceRegistryLabelsUpdateData
 
 
 @attr.s(slots=True, frozen=True, kw_only=True)
-class DeviceEntry(RegistryEntryBase, old_dr.DeviceEntry):
+class DeviceEntry(RegistryEntryBase, old_dr.DeviceEntry):  # type: ignore [misc]
     """Device Registry Entry."""
 
     @property
