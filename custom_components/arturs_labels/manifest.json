@@ -1,10 +1,10 @@
 {
   "domain": "arturs_labels",
   "name": "Artur's Labels",
-  "version": "0.10.0",
   "codeowners": ["@arturpragacz"],
-  "integration_type": "system",
+  "dependencies": ["early_loader"],
   "documentation": "https://github.com/arturpragacz/hass-cc-arturs-labels",
+  "integration_type": "system",
   "issue_tracker": "https://github.com/arturpragacz/hass-cc-arturs-labels/issues",
-  "dependencies": ["early_loader"]
+  "version": "0.10.0"
 }
