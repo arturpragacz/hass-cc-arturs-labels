@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 
+from homeassistant.components import homeassistant as homeassistant_component
 from homeassistant.core import HomeAssistant, callback
 import homeassistant.helpers.target as old_target
 from homeassistant.helpers.target import SelectedEntities, TargetSelectorData
@@ -19,6 +20,9 @@ def async_setup(hass: HomeAssistant) -> bool:
     global old_func  # pylint: disable=global-statement # noqa: PLW0603
     old_func = old_target.async_extract_referenced_entity_ids
     old_target.async_extract_referenced_entity_ids = async_extract_referenced_entity_ids
+    homeassistant_component.async_extract_referenced_entity_ids = (
+        async_extract_referenced_entity_ids
+    )
     return True
 
 
